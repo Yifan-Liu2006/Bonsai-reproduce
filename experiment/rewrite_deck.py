@@ -1,24 +1,19 @@
-r"""Rewrite the fourth part of the class deck with our three experiments.
+r"""Rebuild the class deck's part 3 (paper evidence) and part 4 (our work).
 
-Structure agreed with the team:
-  part 3 (slides 15-19)  = the paper's own experiments, kept verbatim
-  part 4 (slide 20+)     = *our* reproduction: one slide per experiment
+Part 3 now mirrors the paper's own experimental section, one slide per
+subsection, with the numbers taken from the PDF (Tables 4-6, 8, Figs 4/6c):
+
+  §4.1 setup          slides 15
+  §4.2 accuracy       16
+  §4.2 scale          17   (MAG240M / Reddit, the two large graphs)
+  §4.3 cross-arch     18
+  §4.4 efficiency     19
+  §4.5 ablation       20
+
+Part 4 keeps our three experiments (slides 22-24), verdict, scenarios.
 
 Reads  ../../Bonsai_课堂汇报.pptx   (never modified)
 Writes ../../Bonsai_课堂汇报_v2.pptx
-
-Two content slides are duplicated (they already carry the part-4 header and
-page furniture) and moved after slide 21, so part 4 becomes:
-
-  20  divider            (labels: 凝缩效果 / 跨架构复用 / 消融归因)
-  21  experiment 1       accuracy vs budget          (fig1)
-  22  experiment 2       same graph, three backbones (fig2)
-  23  experiment 3       ablation                     (fig3)
-  24  verdict + limits   (was "复现计划")
-  25  when to use it     (was 适用场景, numbers refreshed)
-  26  references         (unchanged)
-  ...
-  B7  the "1%" accounting slide (fig4) appended as a backup
 
 Run:  PYTHONPATH=. python experiment/rewrite_deck.py
 """
@@ -64,7 +59,6 @@ def set_text(shape, text: str) -> None:
         p0.add_run().text = ""
     for extra in tf.paragraphs[1:]:
         extra._p.getparent().remove(extra._p)
-
     lines = text.split("\n")
     for _ in lines[1:]:
         p0._p.getparent().append(copy.deepcopy(p0._p))
@@ -117,8 +111,8 @@ def add_fig(slide, name, x, y, w):
     return slide.shapes.add_picture(str(FIG / name), Inches(x), Inches(y), width=Inches(w))
 
 
-def kicker(slide, text, color=RED):
-    add_text(slide, 0.94, 1.66, 11.4, 0.42, text, size=19, bold=True, color=color,
+def kicker(slide, text, size=19):
+    add_text(slide, 0.94, 1.66, 11.4, 0.42, text, size=size, bold=True, color=RED,
              anchor=MSO_ANCHOR.MIDDLE)
 
 
@@ -128,15 +122,12 @@ def conclusion(slide, text):
 
 
 def duplicate_slide(prs, index: int):
-    """Copy a slide's shapes into a new slide appended at the end."""
     src = prs.slides[index]
     new = prs.slides.add_slide(src.slide_layout)
     for shp in list(new.shapes):
         shp._element.getparent().remove(shp._element)
     for shp in src.shapes:
         new.shapes._spTree.append(copy.deepcopy(shp._element))
-    # carry the speaker notes over as well (the notes placeholders live in the
-    # notes slide, not in the slide layout, so add_slide starts without them)
     if src.has_notes_slide:
         for shp in src.notes_slide.shapes:
             new.notes_slide.shapes._spTree.append(copy.deepcopy(shp._element))
@@ -145,10 +136,23 @@ def duplicate_slide(prs, index: int):
 
 def move_slide(prs, from_index: int, to_index: int) -> None:
     lst = prs.slides._sldIdLst
-    ids = list(lst)
-    el = ids[from_index]
+    el = list(lst)[from_index]
     lst.remove(el)
     lst.insert(to_index, el)
+
+
+def title_of(slide) -> str:
+    try:
+        return by_id(slide, 4).text_frame.text
+    except KeyError:
+        return ""
+
+
+def find_slide(prs, needle: str) -> int:
+    for i, s in enumerate(prs.slides):
+        if needle in title_of(s):
+            return i
+    raise KeyError(needle)
 
 
 def renumber(prs) -> None:
@@ -156,93 +160,213 @@ def renumber(prs) -> None:
         for sh in s.shapes:
             if not sh.has_text_frame:
                 continue
-            try:
-                near = abs(sh.left - Inches(12.12)) < 20000 and abs(sh.top - Inches(7.05)) < 20000
-            except TypeError:
-                near = False
+            near = abs(sh.left - Inches(12.12)) < 20000 and abs(sh.top - Inches(7.05)) < 20000
             if near and sh.text_frame.text.strip().isdigit():
                 set_text(sh, str(i))
 
 
 # --------------------------------------------------------------------------- #
-# part 4 content
+# part 3 -- one slide per subsection of the paper's section 4
 # --------------------------------------------------------------------------- #
-def exp1(prs):
-    s = prs.slides[20]
+def reorder_part3(prs) -> None:
+    """[acc, cross, eff, large, scope] -> [scope, acc, large, cross, eff]."""
+    # the paper's own order already is setup -> accuracy -> large graphs ->
+    # cross-arch -> efficiency, so only one spare page is needed (§4.5)
+    duplicate_slide(prs, 15)     # copy of the accuracy page, rebuilt below
+    move_slide(prs, len(prs.slides._sldIdLst) - 1, 19)
+
+
+def write_part3(prs) -> None:
+    # ---- 15 §4.1 setup -----------------------------------------------------
+    s = prs.slides[14]
+    set_text(by_id(s, 4), "实验设置：7 个数据集、3 档预算、8 个基线")
+    set_text(by_id(s, 6), "来源：原文 §4.1、表 3；附录 B.1–B.2")
+    set_text(by_id(s, 9), "最大 1.21 亿节点，60:20:20 划分，每格跑 5 次")
+    set_text(by_id(s, 10), "7")
+    set_text(by_id(s, 11), "数据集")
+    set_text(by_id(s, 12), "3")
+    set_text(by_id(s, 13), "档字节预算")
+    set_text(by_id(s, 14), "5")
+    set_text(by_id(s, 15), "次独立运行")
+    set_text(by_id(s, 17), "0.5% · 1% · 3%")
+    set_text(by_id(s, 18), "Cora → MAG240M")
+    set_text(by_id(s, 19), "基线：GCond · GDEM · GCSR · EXGC · GC-SNTK · GEOM，外加 Random / Herding")
+    set_text(by_id(s, 21), "指标：测试准确率 + 字节压缩比 Sᵣ = 凝缩图字节 / 全图字节")
+    set_notes(s,
+              "主讲 B，1 分钟。\n"
+              "第三部分看论文自己的实验，结构跟论文第 4 节一致：设置、精度、规模、跨架构、成本、消融。\n"
+              "设置一句话：7 个数据集，最大是 1.21 亿节点的 MAG240M；3 档字节预算；8 个基线，"
+              "其中 6 个神经方法、2 个非神经方法；每格 5 次运行，报均值和标准差。"
+              "划分是 60:20:20，MAG240M 用 80:10:10。")
+
+    # ---- 16 §4.2 accuracy --------------------------------------------------
+    s = prs.slides[15]
+    set_text(by_id(s, 4), "精度：18 个场景里 12 次第一")
+    set_text(by_id(s, 6), "来源：原文表 4、§4.2；5 次运行，均值 ± SD")
+    set_text(by_id(s, 9), "Cora 1%：85.76，领先次优 8.2 点，距全图仅 2.8 点")
+    set_text(by_id(s, 13),
+             "Random 27.75 / Herding 52.07 / Bonsai 85.76 / Full 88.56")
+    set_text(by_id(s, 15), "12 / 18 场景第一")
+    set_text(by_id(s, 16), "多处的提升超过 5 个百分点；GDEM 是第二好的方法")
+    set_text(by_id(s, 18), "距全图只差 2.8 点")
+    set_text(by_id(s, 19), "Bonsai 85.76 vs Full 88.56 —— 凝缩几乎不付精度代价")
+    set_text(by_id(s, 21), "在报告设置下，论文的精度优势成立")
+    set_notes(s,
+              "主讲 B，1.5 分钟。\n"
+              "论文的精度结论是：18 个设置里 12 个第一，多处比第二名高 5 个点以上，GDEM 是第二好的方法。\n"
+              "具体看 Cora 1%：Bonsai 85.76，次优 GCSR 77.56，领先 8.2 点；距全图 88.56 只差 2.8 点。"
+              "所以它说「无梯度不以精度为代价」。")
+
+    # ---- 17 §4.2 large graphs ---------------------------------------------
+    s = prs.slides[16]
+    set_text(by_id(s, 4), "扩到 1.21 亿节点：能跑完，但差距不随预算收敛")
+    set_text(by_id(s, 6), "来源：原文表 4、§4.2；OOT = 5 小时内未完成")
+    set_text(by_id(s, 9), "MAG240M 上只有 Bonsai、Random、Herding 跑完")
+    set_text(by_id(s, 10), "MAG240M（1.21 亿节点）· Accuracy (%)")
+    set_text(by_id(s, 11), "Reddit · Accuracy (%)")
+    set_text(by_id(s, 25), "预算 6×，Bonsai 只涨 1.06 点")
+    set_text(by_id(s, 26), "3% 时被 Bonsai 反超（88.90 vs 85.75）")
+    set_text(by_id(s, 28), "规模优势成立；差距与排名都不承诺稳定")
+    set_notes(s,
+              "主讲 B，1.5 分钟。\n"
+              "两张大图。左边 MAG240M 有 1.21 亿节点，论文里只有 Bonsai、Random、Herding 在 5 小时内跑完，"
+              "其余全部 OOT；但预算翻 6 倍，Bonsai 只从 52.33 涨到 53.39，离全图的 69.95 还差 16.6 点。\n"
+              "右边 Reddit：低预算时 GDEM 领先，3% 时被 Bonsai 反超。\n"
+              "所以「能扩到超大图」成立，「一定赢」不成立。")
+
+    # ---- 18 §4.3 cross-architecture ---------------------------------------
+    s = prs.slides[17]
+    set_text(by_id(s, 4), "跨架构：同一份图，GAT 78.67、GIN 84.80")
+    set_text(by_id(s, 6), "来源：原文表 5、§4.3；差值为 Full − Bonsai（Cora，1%）")
+    set_text(by_id(s, 9), "Cora 1%：把同一份凝缩图交给三种训练器")
+    set_text(by_id(s, 11), "可复用的前提")
+    set_text(by_id(s, 13), "各架构损失不同\nGCN 2.80 / GAT 7.03 / GIN 1.82")
+    set_text(by_id(s, 16), "model-agnostic 成立；各架构保真不同")
+    set_notes(s,
+              "主讲 B，1.5 分钟。\n"
+              "论文的第三个证据：GDEM 和 Bonsai 是 model-agnostic 的，同一份凝缩图可以换训练器；"
+              "GCond 和 GCSR 则要为每个架构单独凝缩。\n"
+              "Cora 1% 上，Bonsai 的 GAT 是 78.67、GIN 是 84.80；相对各自全图的损失是 GCN 2.80、"
+              "GAT 7.03、GIN 1.82。可复用是真的，但各架构保真不同。")
+
+    # ---- 19 §4.4 efficiency ------------------------------------------------
+    s = prs.slides[18]
+    set_text(by_id(s, 4), "效率：平均比最快基线快 7 倍，且全在 CPU 上")
+    set_text(by_id(s, 6), "来源：原文表 6、表 8、§4.4；换算与倍数为本组计算")
+    set_text(by_id(s, 9), "Reddit，0.5%：各阶段耗时（秒）")
+    set_text(by_id(s, 49), "造图比全图训练还贵")
+    set_text(by_id(s, 53), "Bonsai 造图 0.48× 全图训练；GCond 是 12.4×")
+    set_notes(s,
+              "主讲 B，1.5 分钟。\n"
+              "成本这一段有两个数。第一，Bonsai 的凝缩是 CPU-bound，平均比最快的基线 EXGC 快 7 倍以上，"
+              "论文摘要里对全部基线平均是 22 倍。\n"
+              "第二，Reddit 0.5% 上，Bonsai 造图 1170.64 秒，全图训练一次 2425.68 秒，比值 0.48；"
+              "而 GCond 造图 30112 秒，是全图训练的 12.4 倍 —— baseline 的造图成本比训练还高，"
+              "这恰好抵消了凝缩的意义。")
+
+    # ---- 20 §4.5 ablation + parameters -------------------------------------
+    s = prs.slides[19]
+    clear_content(s)
+    set_text(by_id(s, 4), "消融：两个组件都必要，重要性随预算反转")
+    set_text(by_id(s, 6), "来源：原文图 4、图 6c、§4.5、附录 B.4")
+
+    kicker(s, "论文图 4：去掉任一组件，多数设置都显著掉点")
+    rows = [
+        ("完整 Bonsai", "两个组件都在，作为表中的最高参照"),
+        ("去掉 PPR 剪枝", "低预算时影响小；预算变大、图变密后影响变大（Reddit 最明显）"),
+        ("去掉 Rev-k-NN", "改用随机选树；0.5% 压缩率下掉点最多，预算增大后影响减弱"),
+        ("两者都去掉", "在二者基础上进一步下降"),
+    ]
+    y = 2.24
+    for name, effect in rows:
+        add_text(s, 0.90, y, 3.30, 0.40, name, size=16, bold=True, color=INK)
+        add_text(s, 4.30, y + 0.03, 8.30, 0.55, effect, size=13, color=GREY, spacing=1.1)
+        y += 0.86
+    add_text(s, 0.90, 5.62, 11.6, 0.40,
+             "参数敏感性：k 变化时性能总体稳定，峰值在 k=5（图 6c）；采样比例只缩小距离计算的规模（附录 B.4）",
+             size=13, color=GREY)
+    conclusion(s, "组件的重要性随压缩率反转 —— 论文自己指出了这一点")
+    set_notes(s,
+              "主讲 B，1.5 分钟。\n"
+              "论文最后做了消融：去掉 PPR、去掉 Rev-k-NN（改成随机选树）、两个都去掉。\n"
+              "结论是两者都必要，但重要性随压缩率反转：0.5% 这种高压缩率下，去掉 Rev-k-NN 掉得最多；"
+              "预算变大之后，PPR 反而更关键，因为图的边更密了。\n"
+              "参数方面：k 变化时性能总体稳定，峰值在 5；采样比例只是把距离计算的规模缩小。")
+
+    # divider labels
+    s = prs.slides[13]
+    set_text(by_id(s, 11), "论文的实验能支撑到哪一步？")
+    for sid, text in zip((13, 15, 17), ["实验设置", "精度与规模", "成本与消融"]):
+        set_text(by_id(s, sid), text)
+
+
+# --------------------------------------------------------------------------- #
+# part 4 -- our three experiments
+# --------------------------------------------------------------------------- #
+def exp1(prs, i):
+    s = prs.slides[i]
     clear_content(s)
     set_text(by_id(s, 4), "实验一：同预算下，Bonsai 是否真的领先？")
-    set_text(by_id(s, 6), "来源：results/experiment1.csv；两种数据集 × 3 档预算 × 4 方法 × 5 seeds")
-
+    set_text(by_id(s, 6), "来源：results/experiment1.csv；2 数据集 × 3 预算 × 4 方法 × 5 seeds")
     kicker(s, "两个数据集、三档预算、四种方法、五个种子")
     add_fig(s, "fig1_accuracy_vs_budget_zh.png", 0.62, 2.20, 7.85)
-
     add_block(s, 8.72, 2.24, 3.9, "领先 Random 20–60 点",
               "6 个格子里 Random 几乎贴着随机猜测", h=1.05)
     add_block(s, 8.72, 3.42, 3.9, "领先 Herding 11–39 点",
               "低预算时 Herding 更接近 Bonsai", h=1.05)
     add_block(s, 8.72, 4.60, 3.9, "比论文低 1.9 点",
               "Cora −1.4 / Citeseer −2.4，幅度稳定", h=1.05)
-
     conclusion(s, "论文的精度优势成立；差距来自实现，不是评估协议")
     set_notes(s,
               "主讲 B，1.5 分钟。\n"
-              "这是我们自己的 100 次训练：两个数据集、三档预算、四种方法、五个种子。\n"
-              "三个数字：领先 Random 20–60 点，领先 Herding 11–39 点，但比论文低 1.9 点。"
-              "低 1.9 点是因为我们固定了论文没固定的随机种子，属于可解释的系统差，不是跑错。\n"
+              "这是我们自己的 100 次训练。三个数字：领先 Random 20–60 点，领先 Herding 11–39 点，"
+              "但比论文低 1.9 点。低的原因是固定了论文没固定的决策树种子。\n"
               "另外提醒：1% 和 3% 的柱子一样高，因为预算在 1% 就饱和了，细节在备份 B7。")
 
 
-def exp2(prs):
-    s = prs.slides[21]
+def exp2(prs, i):
+    s = prs.slides[i]
     clear_content(s)
     set_text(by_id(s, 4), "实验二：同一份凝缩图，换个训练器还行吗？")
     set_text(by_id(s, 6), "来源：results/experiment2.csv、full_reference.csv；每格只凝缩一次")
-
     kicker(s, "只凝缩一次，喂给 GCN / GAT / GIN")
     add_fig(s, "fig2_cross_arch_zh.png", 0.62, 2.20, 7.85)
-
     add_block(s, 8.72, 2.24, 3.9, "Cora 极差 5.3 点",
               "GIN 86.9 > GCN 84.5 > GAT 81.8", h=1.05)
     add_block(s, 8.72, 3.42, 3.9, "Citeseer 极差 1.3 点",
               "74.2 / 72.9 / 73.9，几乎重合", h=1.05)
     add_block(s, 8.72, 4.60, 3.9, "相对各自 Full：−2.0 ~ +4.9",
               "Cora 上 GIN 反而高于全图", h=1.05)
-
     conclusion(s, "model-agnostic 成立；「各架构同等保真」不成立")
     set_notes(s,
               "主讲 B，1.5 分钟。\n"
-              "同一份凝缩图，没有为三个架构分别重新凝缩。点线是各架构的全图上限，所以看的是"
-              "相对自己掉多少。\n"
-              "Cora 极差 5.3 点，GIN 最稳甚至超过全图，GAT 掉 4 点；Citeseer 三架构只差 1.3 点。"
-              "结论：可复用是真的，但不同训练器对同一份压缩信息反应不同。")
+              "同一份凝缩图，没有为三个架构分别重新凝缩。点线是各架构的全图上限。\n"
+              "Cora 极差 5.3 点，GIN 最稳甚至超过全图，GAT 掉 4 点；Citeseer 三架构只差 1.3 点。")
 
 
-def exp3(prs):
-    s = prs.slides[22]
+def exp3(prs, i):
+    s = prs.slides[i]
     clear_content(s)
     set_text(by_id(s, 4), "实验三：增益到底来自哪个组件？")
     set_text(by_id(s, 6), "来源：results/experiment3.csv（Cora，5 seeds）")
-
     kicker(s, "同预算拆开 PPR 与选树顺序，并同时看图的真实大小")
     add_fig(s, "fig3_ablation_zh.png", 0.62, 2.22, 7.9)
-
     add_block(s, 8.72, 2.24, 3.9, "去 PPR：−5.0 点",
               "0.1% 预算，三档里影响最大", h=1.05)
     add_block(s, 8.72, 3.42, 3.9, "随机 Exemplar：−1.2 点",
               "把预算调到 0.08% 对齐大小后", h=1.05)
     add_block(s, 8.72, 4.60, 3.9, "随机 + 去 PPR：77.4",
               "反而高于只去 PPR 的 73.4", h=1.05)
-
     conclusion(s, "PPR 是主因；它的收益依赖选树质量 —— 论文未讨论")
     set_notes(s,
               "主讲 B，1.5 分钟。\n"
-              "左边准确率、右边同一批图的逻辑大小，必须一起看，否则会把「图更大」当成「选得更好」。\n"
-              "结论三点：PPR 关键，0.1% 掉 5 点；随机选树只掉 1.2 点；但两个都去掉反而比只去 PPR "
-              "高 4 点，说明 PPR 在选点质量差时会退化成随机删点。第三点是论文没写的。")
+              "左边准确率、右边同一批图的逻辑大小，必须一起看。\n"
+              "PPR 关键，0.1% 掉 5 点；随机选树只掉 1.2 点；两个都去掉反而比只去 PPR 高 4 点 —— "
+              "PPR 在选点质量差时会退化成随机删点。第三点是论文没写的。")
 
 
-def verdict(prs):
-    s = prs.slides[23]
+def verdict(prs, i):
+    s = prs.slides[i]
     set_text(by_id(s, 4), "三个实验，分别证明了什么")
     set_text(by_id(s, 6), "来源：本组实验一至三（results/*.csv，5 seeds）")
     set_text(by_id(s, 10), "精度优势成立")
@@ -254,179 +378,24 @@ def verdict(prs):
     set_text(by_id(s, 21), "三项结论都来自本组实测：350 次训练，全部可复现")
     set_notes(s,
               "主讲 B，1 分钟。\n"
-              "三个实验各对应一条结论：实验一证明精度优势是真的，六格全部领先，和论文只差 1.9 点；"
-              "实验二证明同一份图能跨架构复用，Cora 极差 5.3 点、Citeseer 只有 1.3 点；"
-              "实验三把增益拆开，PPR 是主因，选树顺序只值 1 点，而且两者有交互。\n"
-              "\n"
-              "提问预案（不上屏）：\n"
-              "- 问「线性时间呢」：只在小图上跑过，没有测缩放，只能引用代码里的 O(n²) 距离矩阵。\n"
-              "- 问「和 GCond/GDEM 比呢」：仓库自带的合成图是占位数据，三种方法跑出来都只有 46.2%，"
-              "所以这一列只能引用论文数值，我们没有复现。\n"
-              "- 问「为什么比论文低 1.9 点」：我们固定了论文没固定的决策树随机种子，特征固定 174 维；"
-              "论文每次在 169–184 之间浮动取平均，相当于多试了几种特征子集。")
+              "三个实验各对应一条结论：精度优势是真的；同一份图能跨架构复用；增益可以拆开。\n"
+              "提问预案（不上屏）：线性时间只在小图上跑过；GCond/GDEM/GCSR 因为仓库只给占位合成图，"
+              "这一列只能引用论文数值；比论文低 1.9 点是因为我们固定了决策树种子。")
 
 
-def scenarios(prs):
-    s = prs.slides[24]
+def scenarios(prs, i):
+    s = prs.slides[i]
     set_text(by_id(s, 20), "值得作为候选\n凝缩 0.73 s，重训 0.2 s")
     set_text(by_id(s, 26), "与 Full 实测比较\n我们 Full 87.8 / Bonsai 84.5")
     set_text(by_id(s, 32), "现有证据不足\n只覆盖两层模型与两个小图")
     set_notes(s,
               "主讲 B，1 分钟。\n"
               "基于实测给建议：图固定、反复训练浅层模型，值得试，凝缩不到 1 秒；"
-              "只训练一次或精度优先，就和 Full 实测比，我们差 3.3 点；"
-              "更深模型和更大图，现有证据不足。")
+              "只训练一次或精度优先，就和 Full 实测比，我们差 3.3 点；更深模型和更大图，证据不足。")
 
 
-def part3(prs):
-    """Re-organise the paper-evidence section: conclusion first, critique last.
-
-    Current order at 14..18:  15 scope, 16 accuracy, 17 multi-budget,
-                              18 cross-arch, 19 efficiency
-    Target order:             16 accuracy, 18 cross-arch, 19 efficiency,
-                              17 boundaries, 15 hand-off
-    """
-    move_slide(prs, 15, 14)     # accuracy first
-    move_slide(prs, 17, 15)     # cross-arch second
-    move_slide(prs, 18, 16)     # efficiency third
-    move_slide(prs, 18, 17)     # boundaries fourth (old multi-budget page)
-
-    # ---- 14: the paper's accuracy evidence -------------------------------
-    s = prs.slides[14]
-    set_text(by_id(s, 4), "论文的精度证据：18 个场景里 12 次第一")
-    set_text(by_id(s, 6), "来源：原文表 4、摘要；5 次运行，报告均值 ± SD")
-    set_text(by_id(s, 9), "Cora 1%：领先次优 8.2 点，距全图只差 2.8 点")
-    set_text(by_id(s, 13),
-             "Random 27.75 / Herding 52.07 / Bonsai 85.76 / Full 88.56")
-    set_text(by_id(s, 15), "12 / 18 场景第一")
-    set_text(by_id(s, 16), "5 次平均；Cora 1% 的次优是 GCSR 77.56，差 8.2 点")
-    set_text(by_id(s, 18), "距全图只差 2.8 点")
-    set_text(by_id(s, 19), "Bonsai 85.76 vs Full 88.56，凝缩几乎不付精度代价")
-    set_text(by_id(s, 21), "在报告设置下，论文的精度优势成立")
-    set_notes(s,
-              "主讲 B，1.5 分钟。\n"
-              "这一部分先给结论，再给证据。论文在 18 个设置里有 12 个拿第一。\n"
-              "看 Cora 1%：Bonsai 85.76，次优是 GCSR 77.56，领先 8.2 点；距全图 88.56 只差 2.8 点。"
-              "也就是说凝缩几乎没有付出精度代价。\n"
-              "后面的三页分别看跨架构、成本和边界，最后交给第四部分。")
-
-    # ---- 15: cross-architecture ------------------------------------------
-    s = prs.slides[15]
-    set_text(by_id(s, 4), "同一份图，三种训练器：GIN 掉 1.8 点，GAT 掉 7.0 点")
-    set_text(by_id(s, 6), "来源：原文表 5；差值为 Full − Bonsai（Cora，1%）")
-    set_text(by_id(s, 13), "损失差近 4 倍\nGAT 7.03 vs GIN 1.82")
-    set_text(by_id(s, 16), "复用成立；「各架构同等保真」不成立")
-    set_notes(s,
-              "主讲 B，1.5 分钟。\n"
-              "论文的第二个证据是跨架构：同一份凝缩图交给 GCN、GAT、GIN。\n"
-              "Cora 1% 下相对各自全图的损失是 GCN 2.80、GAT 7.03、GIN 1.82，差了近 4 倍。"
-              "论文自己也承认，图 4 的消融没有按架构做，所以不能把 GAT 的损失归因给 PPR。\n"
-              "结论：可复用是真的，但各架构保真不同。")
-
-    # ---- 16: efficiency ---------------------------------------------------
-    s = prs.slides[16]
-    set_text(by_id(s, 4), "效率：造图 19.5 分钟，比全图训练一次还便宜")
-    set_text(by_id(s, 6), "来源：原文表 6、附录 B.1；换算与倍数为本组计算")
-    set_text(by_id(s, 9), "Reddit，0.5%：各阶段耗时（秒）")
-    set_text(by_id(s, 49), "是全图训练的 12.4 倍")
-    set_text(by_id(s, 53), "Bonsai 造图 0.48× 全图训练；baseline 正相反")
-    set_notes(s,
-              "主讲 B，1.5 分钟。\n"
-              "第三份证据是成本。Reddit 0.5% 上，Bonsai 造图 1170.64 秒，全图训练一次 2425.68 秒，"
-              "比值 0.48 —— 造一张图比训练一次还便宜。\n"
-              "对比 GCond：造图 30112 秒，是全图训练的 12.4 倍。所以「凝缩一定省时间」这句话，"
-              "对不同方法是相反的。\n"
-              "另外注意硬件口径：Bonsai 用 CPU，基线用 GPU。")
-
-    # ---- 17: the boundaries ----------------------------------------------
-    s = prs.slides[17]
-    set_text(by_id(s, 4), "证据的边界：大图不收敛，排名会反转")
-    set_text(by_id(s, 6), "来源：原文表 4、附录 A.5；固定代码 main.py:368–390")
-    set_text(by_id(s, 9), "另有两处：归因未隔离、默认实现 O(n²)")
-    set_text(by_id(s, 10), "MAG240M · 大图不收敛")
-    set_text(by_id(s, 11), "Reddit · 排名会反转")
-    set_text(by_id(s, 25), "预算 6×，距全图仍差 16.6 点")
-    set_text(by_id(s, 26), "低预算 GDEM 领先，3% 被反超")
-    set_text(by_id(s, 28), "结论只在报告设置下成立 —— 所以我们自己跑一遍")
-    set_notes(s,
-              "主讲 B，1.5 分钟。\n"
-              "这一页集中讲边界，不分散到前面几页。\n"
-              "左边：MAG240M 上预算翻 6 倍，Bonsai 从 52.33 只到 53.39，距全图仍差 16.6 点，加预算没有弥合大图差距。"
-              "右边：Reddit 上低预算时 GDEM 领先，3% 时被反超，排名会变。\n"
-              "另外两处只能看代码：消融没有隔离监督处理的影响；默认入口是全量距离矩阵，O(n²)。\n"
-              "所以论文的结论是「在报告设置下成立」，不是普遍规律 —— 这也是我们自己跑一遍的理由。")
-
-    # ---- 18: hand-off to part 4 ------------------------------------------
-    s = prs.slides[18]
-    set_text(by_id(s, 4), "所以我们自己跑了三个实验")
-    set_text(by_id(s, 6), "来源：results/*.csv；350 次训练，全部本机 CPU")
-    set_text(by_id(s, 9), "论文的证据到此为止，下面换成我们自己的数")
-    set_text(by_id(s, 10), "3")
-    set_text(by_id(s, 11), "实验")
-    set_text(by_id(s, 12), "2")
-    set_text(by_id(s, 13), "数据集")
-    set_text(by_id(s, 14), "350")
-    set_text(by_id(s, 15), "次训练")
-    set_text(by_id(s, 17), "精度 · 跨架构 · 消融")
-    set_text(by_id(s, 18), "Cora / Citeseer")
-    set_text(by_id(s, 19), "每个实验对应一条论文主张")
-    set_text(by_id(s, 21), "下面三个实验，逐一验证上面的证据")
-    set_notes(s,
-              "主讲 B，30 秒，过渡页。\n"
-              "论文的证据我们就看到这里。接下来换成我们自己跑的：三个实验、两个数据集、350 次训练，"
-              "全部在这台笔记本的 CPU 上完成。\n"
-              "每个实验对应论文的一条主张：精度、跨架构、组件归因。")
-
-
-def dividers(prs):
-    s = prs.slides[13]
-    for sid, text in zip((13, 15, 17), ["精度证据", "跨架构", "成本与边界"]):
-        set_text(by_id(s, sid), text)
-    s = prs.slides[19]
-    set_text(by_id(s, 11), "三个实验，各自验证了什么？")
-    for sid, text in zip((13, 15, 17), ["凝缩效果", "跨架构复用", "消融归因"]):
-        set_text(by_id(s, sid), text)
-    set_notes(s, "主讲 B。分节过渡约 5–8 秒。前三部分是论文自己怎么说，这一部分是我们自己跑了什么。")
-
-
-def agenda(prs):
-    s = prs.slides[1]
-    set_text(by_id(s, 19), "精度证据 / 跨架构 / 成本与边界")
-    set_text(by_id(s, 23), "三个实验 / 判定与边界 / 适用场景")
-
-
-def backup_accounting(prs):
-    """New backup page B7: the two readings of "1%" plus the saturation note."""
-    dup = duplicate_slide(prs, 20)
-    move_slide(prs, len(prs.slides._sldIdLst) - 1, len(prs.slides._sldIdLst) - 1)
-    s = prs.slides[-1]
-    clear_content(s)
-    set_text(by_id(s, 2), "BONSAI  /  备用补充材料")
-    set_text(by_id(s, 4), "「1%」到底是多少？为什么 1% 与 3% 一样")
-    set_text(by_id(s, 6), "备份：results/budget_table.csv、efficiency.csv；main.py:size()")
-    set_text(by_id(s, 7), "B7")
-
-    kicker(s, "逻辑 71.7 KB 符合 1%，落盘 1.87 MB 是原图的 24%")
-    add_fig(s, "fig4_budget_accounting_zh.png", 0.62, 2.18, 7.6)
-
-    add_block(s, 8.55, 2.24, 4.05, "1% 与 3%：逐字节相同",
-              "2522 节点 / 10854 边", h=1.05)
-    add_block(s, 8.55, 3.42, 4.05, "节点保留 93%",
-              "2522 / 2708，1% 已装下全部训练节点", h=1.05)
-    add_block(s, 8.55, 4.60, 4.05, "两种口径",
-              "稀疏 int 记账 vs PyG 的 float32 + int64", h=1.05)
-
-    conclusion(s, "「1% 还能到 85%」不是压缩强，而是几乎没压缩")
-    set_notes(s,
-              "备用页。如果被问到「1% 到底压掉了多少」，翻到这页。\n"
-              "逻辑上 71.7 KB，确实符合论文的 1% 口径；但 PyG 落盘 1.87 MB，是原图的 24%，"
-              "节点保留了 93%。所以 1% 之所以还能到 85%，主要是特征从 1433 维筛到了 174 维，"
-              "加上几乎没删节点。\n"
-              "顺带解释为什么 1% 和 3% 一样：预算在 1% 就已经覆盖全部训练节点，再多也选不出新点。")
-
-
-def backup_b2(prs):
-    s = prs.slides[28]
+def backup_b2(prs, i):
+    s = prs.slides[i]
     set_text(by_id(s, 4), "消融到底拆开了什么？")
     set_text(by_id(s, 6), "备份：本组 experiment3 的实测结果，不是计划")
     set_text(by_id(s, 10), "变体")
@@ -442,44 +411,68 @@ def backup_b2(prs):
     set_text(by_id(s, 36), "随机 + 去 PPR：77.38 ± 1.16 / 7.9 KB")
     set_text(by_id(s, 38), "同预算比较必须同时看大小：随机 Exemplar 的图大 19%")
     set_notes(s,
-              "备用页。如果被问到「怎么证明是 PPR 在起作用」，翻到这页。\n"
-              "四个变体的数字来自 experiment3.csv，0.1% 预算、5 个种子。随机 Exemplar 的图比 "
-              "Bonsai 大 19%，所以同预算下它并不吃亏；把预算调到 0.08% 对齐大小后是 77.12。\n"
-              "关键结论：只去 PPR 掉 5 点，但随机 + 去 PPR 反而回到 77.4，两个组件存在交互。")
+              "备用页。四个变体的数字来自 experiment3.csv，0.1% 预算、5 个种子。\n"
+              "关键：只去 PPR 掉 5 点，但随机 + 去 PPR 反而回到 77.4，两个组件存在交互。")
 
 
-def backup_b5(prs):
-    s = prs.slides[31]
+def backup_b5(prs, i):
+    s = prs.slides[i]
     set_text(by_id(s, 17), "特征 1433 → 174 维")
     set_text(by_id(s, 23), "每节点只按非零元计 2 B")
     set_text(by_id(s, 20), "共同预处理下覆盖还能增益多少")
     set_text(by_id(s, 26), "最终 2522 节点 / 10854 边 / 1516 训练目标")
     set_text(by_id(s, 28), "我们实测：逻辑 71.7 KB，占原图 0.93%")
     set_notes(s,
-              "备用页。如果被追问「筛特征是不是作弊」，用我们自己的数字回答：\n"
-              "论文按稀疏 int 记账，筛完特征后每节点只算非零元的 2 字节，所以 1% 预算能装下 2522 "
-              "个节点；换成 dense float 落盘就是 1.87 MB，占原图 24%。\n"
-              "公平比较要固定预算分母，并同时报告最终维度、节点、边和监督目标数量。")
+              "备用页。论文按稀疏 int 记账，筛完特征后每节点只算非零元的 2 字节，所以 1% 能装 2522 个节点；"
+              "换成 dense float 落盘就是 1.87 MB，占原图 24%。")
+
+
+def backup_accounting(prs):
+    dup = duplicate_slide(prs, 14)
+    s = prs.slides[-1]
+    clear_content(s)
+    set_text(by_id(s, 2), "BONSAI  /  备用补充材料")
+    set_text(by_id(s, 4), "「1%」到底是多少？为什么 1% 与 3% 一样")
+    set_text(by_id(s, 6), "备份：results/budget_table.csv、efficiency.csv；main.py:size()")
+    set_text(by_id(s, 7), "B7")
+    kicker(s, "逻辑 71.7 KB 符合 1%，落盘 1.87 MB 是原图的 24%")
+    add_fig(s, "fig4_budget_accounting_zh.png", 0.62, 2.18, 7.6)
+    add_block(s, 8.55, 2.24, 4.05, "1% 与 3%：逐字节相同", "2522 节点 / 10854 边", h=1.05)
+    add_block(s, 8.55, 3.42, 4.05, "节点保留 93%", "2522 / 2708，1% 已装下全部训练节点", h=1.05)
+    add_block(s, 8.55, 4.60, 4.05, "两种口径", "稀疏 int 记账 vs PyG 的 float32 + int64", h=1.05)
+    conclusion(s, "「1% 还能到 85%」不是压缩强，而是几乎没压缩")
+    set_notes(s,
+              "备用页。如果被问到「1% 到底压掉了多少」，翻到这页。逻辑 71.7 KB 符合论文的 1% 口径，"
+              "但落盘 1.87 MB、保留了 93% 的节点；1% 之所以还能到 85%，主要是特征从 1433 维筛到 174 维。")
+
+
+def agenda(prs):
+    s = prs.slides[1]
+    set_text(by_id(s, 19), "实验设置 / 精度与规模 / 成本与消融")
+    set_text(by_id(s, 23), "三个实验 / 判定与边界 / 适用场景")
 
 
 def main() -> None:
     prs = Presentation(str(SRC))
 
-    # two extra content slides for experiments 2 and 3 (part 4 grows by 2)
-    for _ in range(2):
-        duplicate_slide(prs, 20)
-        move_slide(prs, len(prs.slides._sldIdLst) - 1, 21 + _)
+    reorder_part3(prs)
+    write_part3(prs)
+
+    # part 4: two extra slots, so experiments 2 and 3 sit between exp1 and
+    # the old "三项主张 / 复现计划 / 适用场景" pages
+    div4 = find_slide(prs, "第四部分")
+    for k in range(2):
+        duplicate_slide(prs, div4 + 1)
+        move_slide(prs, len(prs.slides._sldIdLst) - 1, div4 + 2 + k)
 
     agenda(prs)
-    part3(prs)
-    dividers(prs)
-    exp1(prs)
-    exp2(prs)
-    exp3(prs)
-    verdict(prs)
-    scenarios(prs)
-    backup_b2(prs)
-    backup_b5(prs)
+    exp1(prs, div4 + 1)
+    exp2(prs, div4 + 2)
+    exp3(prs, div4 + 3)
+    verdict(prs, div4 + 4)
+    scenarios(prs, div4 + 5)
+    backup_b2(prs, find_slide(prs, "结构覆盖与监督处理"))
+    backup_b5(prs, find_slide(prs, "筛特征是否改变了预算公平性"))
     backup_accounting(prs)
     renumber(prs)
 
