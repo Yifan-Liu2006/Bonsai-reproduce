@@ -244,8 +244,10 @@ def fig2(exp2, exp1, full_ref, budgets, out: Path, t: dict) -> None:
         ax.set_title(ds.capitalize())
         ax.set_ylim(50, 92)
     axes[0].set_ylabel(t["fig2_y"])
-    axes[0].legend(ncol=3, loc="lower right", fontsize=9)
-    fig.suptitle(t["fig2"], y=1.02)
+    handles, labels = axes[0].get_legend_handles_labels()
+    fig.legend(handles, labels, loc="upper center", ncol=3,
+               bbox_to_anchor=(0.5, 1.01), fontsize=9)
+    fig.suptitle(t["fig2"], y=1.10)
     fig.text(0.99, -0.02, "bars = Bonsai; dotted = full graph", ha="right",
              fontsize=8, color="#666666")
     fig.tight_layout()
@@ -282,10 +284,12 @@ def fig3(exp3, budgets, out: Path, t: dict) -> None:
     ax1.set_ylabel(t["fig3_y"])
     ax1.set_ylim(70, 84.5)
     ax1.set_title(t["fig3a"])
-    ax1.legend(loc="lower right", fontsize=8.5)
+    handles, labels = ax1.get_legend_handles_labels()
+    fig.legend(handles, labels, loc="upper center", ncol=4,
+               bbox_to_anchor=(0.5, 1.01), fontsize=8.5)
     ax2.set_ylabel(t["fig3_kb"])
     ax2.set_title(t["fig3b"])
-    fig.suptitle(t["fig3"], y=1.02)
+    fig.suptitle(t["fig3"], y=1.10)
     fig.text(0.99, -0.03, t["fig3_note"], ha="right", fontsize=8, color="#666666")
     fig.tight_layout()
     fig.savefig(out, bbox_inches="tight")
