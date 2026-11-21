@@ -153,7 +153,10 @@ def transform_features_with_tree(
     # features_normalized = scaler.fit_transform(features)
 
     # Train a Decision Tree Classifier
-    clf = DecisionTreeClassifier(max_depth=50)
+    # NOTE (local fork): sklearn's 'best' splitter breaks ties with the global
+    # RNG, so without random_state the selected feature set changes on every
+    # run (observed: 169-184 of 1433 features). Pin it for reproducibility.
+    clf = DecisionTreeClassifier(max_depth=50, random_state=0)
     clf.fit(features, labels)
 
     # Get all features used for splitting

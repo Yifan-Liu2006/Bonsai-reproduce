@@ -1,11 +1,21 @@
 r"""File containing GCN model classes.
+
+NOTE (local fork): ``torch_sparse`` is optional here. It is only required by the
+``SparseTensor`` path used for the GraphSAINT datasets; on platforms without
+pre-built wheels (e.g. macOS/ARM) the code degrades gracefully.
 """
+
+from __future__ import annotations
 
 from typing import Union
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-import torch_sparse
+
+try:  # optional dependency
+    import torch_sparse
+except ImportError:  # pragma: no cover
+    torch_sparse = None
 
 import torch_geometric.nn as gnn
 
@@ -38,7 +48,7 @@ class GraphConvolution(nn.Module):
         else:
             support = torch.mm(x, self.weight)
 
-        if isinstance(adj, torch_sparse.SparseTensor):
+        if torch_sparse is not None and isinstance(adj, torch_sparse.SparseTensor):
             output = torch_sparse.matmul(adj, support)
         else:
             output = torch.spmm(adj, support)

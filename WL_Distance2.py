@@ -3,13 +3,18 @@ import numpy as np
 import scipy.sparse as sp
 
 import torch
-import torch_sparse
-from torch_sparse import SparseTensor
+
+try:  # optional dependency, not needed for the sparse-COO fallback below
+    import torch_sparse
+    from torch_sparse import SparseTensor
+except ImportError:  # pragma: no cover
+    torch_sparse = None
+    SparseTensor = None
 
 
 @torch.no_grad()
 def one_wl_forward(x, adj):
-    if isinstance(adj, torch_sparse.SparseTensor):
+    if torch_sparse is not None and isinstance(adj, torch_sparse.SparseTensor):
         output = torch_sparse.matmul(adj, x)
     else:
         output = torch.spmm(adj, x)
@@ -33,15 +38,9 @@ def compute_wl_representations(x, adj):
     adj[single_node_inds, single_node_inds] = 1 # weighted_transition_matrix(G, q) in https://github.com/chens5/WL-distance/blob/main/utils/utils.py
     # Also possible to use a q like in https://github.com/chens5/WL-distance/blob/main/utils/utils.py
     adj = adj.tocoo().astype(np.float32)
-    sparserow = torch.LongTensor(adj.row).unsqueeze(1)
-    sparsecol = torch.LongTensor(adj.col).unsqueeze(1)
-    sparseconcat = torch.cat((sparserow, sparsecol), 1)
-    sparsedata = torch.FloatTensor(adj.data)
-    adj = torch.sparse.FloatTensor(sparseconcat.t(), sparsedata, torch.Size(adj.shape))
-    adj = SparseTensor(
-        row=adj._indices()[0],
-        col=adj._indices()[1],
-        value=adj._values(),
-        sparse_sizes=adj.size(),
+    indices = torch.from_numpy(
+        np.vstack([adj.row, adj.col]).astype(np.int64)
     )
+    values = torch.from_numpy(adj.data)
+    adj = torch.sparse_coo_tensor(indices, values, torch.Size(adj.shape))
     return one_wl_forward(x, adj)

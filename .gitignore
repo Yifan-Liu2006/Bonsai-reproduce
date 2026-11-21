@@ -1,2 +1,13 @@
 datasets/*/
 !datasets/.DS_Store
+
+# python
+__pycache__/
+*.py[cod]
+
+# run artifacts (regenerate with experiment/run_exp*.sh)
+logs/
+tensorboard_logs/
+outputs/
+error_logs/
+saved_ours/*/

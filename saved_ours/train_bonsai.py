@@ -44,7 +44,7 @@ def load_syn_dataset(dataset_name, target_frac, synthetic_root, scaler):
     global saint_datasets
     from pathlib import Path
     path = Path(synthetic_root) / f"{dataset_name}-{target_frac}/data_m_0.9.pt"
-    data_syn = torch.load(path, map_location="cpu")
+    data_syn = torch.load(path, map_location="cpu", weights_only=False)
     if isinstance(data_syn, dict):
         data = data_syn["data"]
         feat_syn = data.x.cpu().numpy()
