@@ -384,15 +384,33 @@ def verdict(prs, i):
 
 
 def scenarios(prs, i):
+    """Grounded in the paper's own analysis, not in our reproduction."""
     s = prs.slides[i]
-    set_text(by_id(s, 20), "值得作为候选\n凝缩 0.73 s，重训 0.2 s")
-    set_text(by_id(s, 26), "与 Full 实测比较\n我们 Full 87.8 / Bonsai 84.5")
-    set_text(by_id(s, 32), "现有证据不足\n只覆盖两层模型与两个小图")
-    set_notes(s,
-              "主讲 B，1 分钟。\n"
-              "基于实测给建议：图固定、反复训练浅层模型，值得试，凝缩不到 1 秒；"
-              "只训练一次或精度优先，就和 Full 实测比，我们差 3.3 点；更深模型和更大图，证据不足。")
+    set_text(by_id(s, 4), "什么时候值得选 Bonsai？")
+    set_text(by_id(s, 6), "来源：原文 §4.3–§4.5、§3、附录 A.5；本组据原文归纳")
+    set_text(by_id(s, 11), "使用场景")
+    set_text(by_id(s, 14), "论文给出的判断")
 
+    set_text(by_id(s, 17), "同一份图，反复训练、还会换训练器")
+    set_text(by_id(s, 20), "值得选\n线性时间且架构无关（GDEM 也跨架构）")
+    set_text(by_id(s, 23), "无法承担全图训练成本")
+    set_text(by_id(s, 26), "值得选\n凝缩不碰全图；GCSR 要 100 次、GEOM 200 次")
+    set_text(by_id(s, 29), "超大图，或要求贴近全图精度")
+    set_text(by_id(s, 32), "谨慎\nMAG240M 预算 6× 仍差 16.6 点")
+    set_text(by_id(s, 33), "定位：更便宜的凝缩器；精度无理论界，只有覆盖近似比")
+
+    notes = [
+        "主讲 B，1 分钟。",
+        "这一页不是我们的实测，是论文自己给出的适用边界。",
+        "第一类值得选：同一份图要反复训练、训练器还会换。Bonsai 是线性时间且 model-agnostic，"
+        "GDEM 也跨架构，但 GCond 和 GCSR 要为每个架构单独凝缩。",
+        "第二类值得选：承担不起全图训练。Bonsai 凝缩时不碰全图，而 GCSR 要在全图上训练 100 次、"
+        "GEOM 200 次；Reddit 上 GCond 造图 8.4 小时，比全图训练还贵 12.4 倍。",
+        "第三类要谨慎：超大图或要求贴近全图精度。MAG240M 上预算翻 6 倍仍差 16.6 点；",
+        "而且默认入口是全量距离矩阵 O(n²)，要扩展必须显式打开采样。",
+        "最后一句：论文的理论只保证代表力估计和覆盖近似，没有到测试误差的界。",
+    ]
+    set_notes(s, "\n".join(notes))
 
 def backup_b2(prs, i):
     s = prs.slides[i]
