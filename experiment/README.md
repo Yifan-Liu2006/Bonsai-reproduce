@@ -58,6 +58,9 @@ n = (sqrt(d^2 + t) - d) / 2       t = S_r * full
 | `collect_results.py` | 汇总 CSV，输出 `summary_*.csv` 与 markdown 表 |
 | `run_exp1.sh` | 实验一全矩阵（含凝缩、4 种方法、收敛后自动汇总） |
 | `run_exp2.sh` | 实验二：同一份凝缩图 × GCN/GAT/GIN |
+| `run_exp3.sh` | 实验三消融：Bonsai / 随机 Exemplar / 去 PPR，0.1%–1% |
+| `main_random_exemplar.py` | 消融变体 A：Exemplar 顺序换成固定种子随机排列 |
+| `main_no_ppr.py` | 消融变体 B：跳过 PPR 删点（并把 upscale 设为 1） |
 
 ## 快速开始
 
@@ -70,6 +73,9 @@ bash experiment/run_exp1.sh
 
 # 实验二（复用实验一的凝缩图）
 bash experiment/run_exp2.sh
+
+# 实验三（消融，Cora，0.1%–1%，5 seeds）
+bash experiment/run_exp3.sh
 
 # 只跑一格
 $PY experiment/train_baseline.py --dataset cora --method random \
@@ -115,3 +121,22 @@ Cora 1%：Bonsai 85.72±1.18（论文 85.76±0.24）、Herding 48.2±0.7（52.1�
 Random 38.1±3.8（27.8±2.1）。Random 偏高是因为 n=13 时诱导子图没有任何边，
 GCN 退化为 13 个样本上的 MLP，结果强烈依赖抽到哪些点（换 selection seed 实测 39–49）。
 定性结论（Bonsai ≫ Random/Herding）不受影响。
+
+## 消融的注意事项
+
+`run_exp3.sh` 的预算默认是 `0.001 0.002 0.005 0.01`，但 **1% 上两个消融都是空操作**：
+预算已经覆盖全部训练节点，任何 Exemplar 顺序都选出同一批点，去 PPR 后图只差 1 个节点。
+真正有信息的是 0.1%–0.5%。
+
+实测（Cora，5 seeds）：
+
+| S_r | Bonsai | 随机 Exemplar | 去 PPR |
+|---|---|---|---|
+| 0.1% | 78.34 | 79.15（图大 19%） | **73.36** |
+| 0.2% | 79.96 | 79.37 | 78.08 |
+| 0.5% | 82.92 | 82.69 | 82.47 |
+| 1% | 84.47 | 84.47（同图） | 84.47（同图） |
+
+- PPR 是主要贡献者，且预算越紧影响越大（0.1% 掉 5 点）。
+- 随机 Exemplar 在同预算下不明显掉点，但图大 19%；把预算降到 0.08% 做大小对齐后
+  是 77.12（−1.2 点），即 Rev-k-NN/Coverage 在 Cora 上约值 1 个点。
