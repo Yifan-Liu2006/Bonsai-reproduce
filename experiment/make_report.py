@@ -5,6 +5,10 @@ Only the Markdown subset used by the report is supported: headings, paragraphs
 images.  That keeps the report editable as text while still producing a Word
 file that can be submitted or exported to PDF.
 
+NOTE: this builds the *body* only.  The submitted file adds a cover page
+(logo + 课程/作者/论文信息) that is maintained inside the .docx; regenerating
+overwrites it, so copy the cover back or ask for the cover to be scripted too.
+
 Run:  PYTHONPATH=. python experiment/make_report.py
 """
 
