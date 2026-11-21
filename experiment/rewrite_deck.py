@@ -264,62 +264,34 @@ def write_part3(prs) -> None:
               "而 GCond 造图 30112 秒，是全图训练的 12.4 倍 —— baseline 的造图成本比训练还高，"
               "这恰好抵消了凝缩的意义。")
 
-    # ---- 20 §4.5 ablation + component cost --------------------------------
+    # ---- 20 §4.5 ablation + parameters -------------------------------------
     s = prs.slides[19]
     clear_content(s)
-    set_text(by_id(s, 4), "消融：两个组件都必要，PPR 还占去 65% 的凝缩时间")
-    set_text(by_id(s, 6), "来源：原文图 4（精度）、表 7（组件耗时）、§4.5、附录 B.4.1")
+    set_text(by_id(s, 4), "消融：两个组件都必要，重要性随预算反转")
+    set_text(by_id(s, 6), "来源：原文图 4、图 6c、§4.5、附录 B.4")
 
-    kicker(s, "精度看论文图 4，成本看论文表 7")
-
-    add_text(s, 0.86, 2.18, 5.2, 0.30, "消融（图 4）", size=13, bold=True, color=RED)
-    variants = [
-        ("完整 Bonsai", "两个组件都在，图 4 的对照基线"),
-        ("去掉 PPR 剪枝", "低预算影响小；预算变大、图变密后更关键"),
-        ("去掉 Rev-k-NN", "改用随机选树；0.5% 掉点最多，预算增大后减弱"),
+    kicker(s, "论文图 4：去掉任一组件，多数设置都显著掉点")
+    rows = [
+        ("完整 Bonsai", "两个组件都在，作为表中的最高参照"),
+        ("去掉 PPR 剪枝", "低预算时影响小；预算变大、图变密后影响变大（Reddit 最明显）"),
+        ("去掉 Rev-k-NN", "改用随机选树；0.5% 压缩率下掉点最多，预算增大后影响减弱"),
         ("两者都去掉", "在二者基础上进一步下降"),
     ]
-    y = 2.62
-    for name, effect in variants:
-        add_text(s, 0.86, y, 5.2, 0.32, name, size=14.5, bold=True, color=INK)
-        add_text(s, 0.86, y + 0.34, 5.2, 0.62, effect, size=12, color=GREY, spacing=1.05)
-        y += 1.02
-
-    add_text(s, 6.55, 2.18, 5.9, 0.30, "组件耗时（表 7，Cora，秒）", size=13, bold=True, color=RED)
-    for x, head in ((6.55, "组件"), (8.95, "耗时"), (10.45, "占比")):
-        add_text(s, x, 2.60, 2.2, 0.28, head, size=11.5, bold=True, color=GREY)
-    cost_rows = [("WL 表示", "0.87", "33%"),
-                 ("Rev-k-NN", "0.05", "2%"),
-                 ("贪心覆盖", "0.005", "<1%"),
-                 ("PPR 剪枝", "1.68", "65%"),
-                 ("合计", "2.60", "100%")]
-    y = 2.96
-    for name, sec, share in cost_rows:
-        bold = name == "合计"
-        col = RED if name == "PPR 剪枝" else INK
-        add_text(s, 6.55, y, 2.3, 0.32, name, size=13, bold=bold, color=col)
-        add_text(s, 8.95, y, 1.3, 0.32, sec, size=13, bold=bold, color=col)
-        add_text(s, 10.45, y, 1.5, 0.32, share, size=13, bold=bold, color=col)
-        y += 0.46
-
-    add_text(s, 6.55, 5.42, 5.9, 0.60,
-             "四项相加正好等于 2.60 秒；PPR 一项占 65%，是最贵的步骤",
-             size=11.5, color=GREY, spacing=1.1)
-    add_text(s, 0.86, 5.72, 5.4, 0.55,
-             "参数：k 变化时性能总体稳定，峰值在 k=5（图 6c）",
-             size=12, color=GREY, spacing=1.1)
-
-    conclusion(s, "同一组件既决定精度也决定成本 —— PPR 两项都占大头")
-    notes = [
-        "主讲 B，1.5 分钟。",
-        "这一页把两张图放一起：左边是精度上的消融（图 4），右边是成本上的组件拆分（表 7）。",
-        "精度：去掉 PPR 或 Rev-k-NN 都会掉点，而且重要性随压缩率反转 —— 0.5% 时去掉 Rev-k-NN 掉得最多；",
-        "预算变大、图变密之后，PPR 变得更关键。",
-        "成本：Cora 上 WL 0.87 秒、Rev-k-NN 0.05、贪心 0.005、PPR 1.68，加起来正好 2.60 秒，",
-        "PPR 占 65%。所以 PPR 不只是精度组件，也是最贵的一步。",
-        "参数方面：k 变化时性能稳定，峰值在 5。",
-    ]
-    set_notes(s, "\n".join(notes))
+    y = 2.24
+    for name, effect in rows:
+        add_text(s, 0.90, y, 3.30, 0.40, name, size=16, bold=True, color=INK)
+        add_text(s, 4.30, y + 0.03, 8.30, 0.55, effect, size=13, color=GREY, spacing=1.1)
+        y += 0.86
+    add_text(s, 0.90, 5.62, 11.6, 0.40,
+             "参数敏感性：k 变化时性能总体稳定，峰值在 k=5（图 6c）；采样比例只缩小距离计算的规模（附录 B.4）",
+             size=13, color=GREY)
+    conclusion(s, "组件的重要性随压缩率反转 —— 论文自己指出了这一点")
+    set_notes(s,
+              "主讲 B，1.5 分钟。\n"
+              "论文最后做了消融：去掉 PPR、去掉 Rev-k-NN（改成随机选树）、两个都去掉。\n"
+              "结论是两者都必要，但重要性随压缩率反转：0.5% 这种高压缩率下，去掉 Rev-k-NN 掉得最多；"
+              "预算变大之后，PPR 反而更关键，因为图的边更密了。\n"
+              "参数方面：k 变化时性能总体稳定，峰值在 5；采样比例只是把距离计算的规模缩小。")
 
     # divider labels
     s = prs.slides[13]
