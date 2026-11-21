@@ -278,7 +278,110 @@ def scenarios(prs):
               "更深模型和更大图，现有证据不足。")
 
 
+def part3(prs):
+    """Re-organise the paper-evidence section: conclusion first, critique last.
+
+    Current order at 14..18:  15 scope, 16 accuracy, 17 multi-budget,
+                              18 cross-arch, 19 efficiency
+    Target order:             16 accuracy, 18 cross-arch, 19 efficiency,
+                              17 boundaries, 15 hand-off
+    """
+    move_slide(prs, 15, 14)     # accuracy first
+    move_slide(prs, 17, 15)     # cross-arch second
+    move_slide(prs, 18, 16)     # efficiency third
+    move_slide(prs, 18, 17)     # boundaries fourth (old multi-budget page)
+
+    # ---- 14: the paper's accuracy evidence -------------------------------
+    s = prs.slides[14]
+    set_text(by_id(s, 4), "论文的精度证据：18 个场景里 12 次第一")
+    set_text(by_id(s, 6), "来源：原文表 4、摘要；5 次运行，报告均值 ± SD")
+    set_text(by_id(s, 9), "Cora 1%：领先次优 8.2 点，距全图只差 2.8 点")
+    set_text(by_id(s, 13),
+             "Random 27.75 / Herding 52.07 / Bonsai 85.76 / Full 88.56")
+    set_text(by_id(s, 15), "12 / 18 场景第一")
+    set_text(by_id(s, 16), "5 次平均；Cora 1% 的次优是 GCSR 77.56，差 8.2 点")
+    set_text(by_id(s, 18), "距全图只差 2.8 点")
+    set_text(by_id(s, 19), "Bonsai 85.76 vs Full 88.56，凝缩几乎不付精度代价")
+    set_text(by_id(s, 21), "在报告设置下，论文的精度优势成立")
+    set_notes(s,
+              "主讲 B，1.5 分钟。\n"
+              "这一部分先给结论，再给证据。论文在 18 个设置里有 12 个拿第一。\n"
+              "看 Cora 1%：Bonsai 85.76，次优是 GCSR 77.56，领先 8.2 点；距全图 88.56 只差 2.8 点。"
+              "也就是说凝缩几乎没有付出精度代价。\n"
+              "后面的三页分别看跨架构、成本和边界，最后交给第四部分。")
+
+    # ---- 15: cross-architecture ------------------------------------------
+    s = prs.slides[15]
+    set_text(by_id(s, 4), "同一份图，三种训练器：GIN 掉 1.8 点，GAT 掉 7.0 点")
+    set_text(by_id(s, 6), "来源：原文表 5；差值为 Full − Bonsai（Cora，1%）")
+    set_text(by_id(s, 13), "损失差近 4 倍\nGAT 7.03 vs GIN 1.82")
+    set_text(by_id(s, 16), "复用成立；「各架构同等保真」不成立")
+    set_notes(s,
+              "主讲 B，1.5 分钟。\n"
+              "论文的第二个证据是跨架构：同一份凝缩图交给 GCN、GAT、GIN。\n"
+              "Cora 1% 下相对各自全图的损失是 GCN 2.80、GAT 7.03、GIN 1.82，差了近 4 倍。"
+              "论文自己也承认，图 4 的消融没有按架构做，所以不能把 GAT 的损失归因给 PPR。\n"
+              "结论：可复用是真的，但各架构保真不同。")
+
+    # ---- 16: efficiency ---------------------------------------------------
+    s = prs.slides[16]
+    set_text(by_id(s, 4), "效率：造图 19.5 分钟，比全图训练一次还便宜")
+    set_text(by_id(s, 6), "来源：原文表 6、附录 B.1；换算与倍数为本组计算")
+    set_text(by_id(s, 9), "Reddit，0.5%：各阶段耗时（秒）")
+    set_text(by_id(s, 49), "是全图训练的 12.4 倍")
+    set_text(by_id(s, 53), "Bonsai 造图 0.48× 全图训练；baseline 正相反")
+    set_notes(s,
+              "主讲 B，1.5 分钟。\n"
+              "第三份证据是成本。Reddit 0.5% 上，Bonsai 造图 1170.64 秒，全图训练一次 2425.68 秒，"
+              "比值 0.48 —— 造一张图比训练一次还便宜。\n"
+              "对比 GCond：造图 30112 秒，是全图训练的 12.4 倍。所以「凝缩一定省时间」这句话，"
+              "对不同方法是相反的。\n"
+              "另外注意硬件口径：Bonsai 用 CPU，基线用 GPU。")
+
+    # ---- 17: the boundaries ----------------------------------------------
+    s = prs.slides[17]
+    set_text(by_id(s, 4), "证据的边界：大图不收敛，排名会反转")
+    set_text(by_id(s, 6), "来源：原文表 4、附录 A.5；固定代码 main.py:368–390")
+    set_text(by_id(s, 9), "另有两处：归因未隔离、默认实现 O(n²)")
+    set_text(by_id(s, 10), "MAG240M · 大图不收敛")
+    set_text(by_id(s, 11), "Reddit · 排名会反转")
+    set_text(by_id(s, 25), "预算 6×，距全图仍差 16.6 点")
+    set_text(by_id(s, 26), "低预算 GDEM 领先，3% 被反超")
+    set_text(by_id(s, 28), "结论只在报告设置下成立 —— 所以我们自己跑一遍")
+    set_notes(s,
+              "主讲 B，1.5 分钟。\n"
+              "这一页集中讲边界，不分散到前面几页。\n"
+              "左边：MAG240M 上预算翻 6 倍，Bonsai 从 52.33 只到 53.39，距全图仍差 16.6 点，加预算没有弥合大图差距。"
+              "右边：Reddit 上低预算时 GDEM 领先，3% 时被反超，排名会变。\n"
+              "另外两处只能看代码：消融没有隔离监督处理的影响；默认入口是全量距离矩阵，O(n²)。\n"
+              "所以论文的结论是「在报告设置下成立」，不是普遍规律 —— 这也是我们自己跑一遍的理由。")
+
+    # ---- 18: hand-off to part 4 ------------------------------------------
+    s = prs.slides[18]
+    set_text(by_id(s, 4), "所以我们自己跑了三个实验")
+    set_text(by_id(s, 6), "来源：results/*.csv；350 次训练，全部本机 CPU")
+    set_text(by_id(s, 9), "论文的证据到此为止，下面换成我们自己的数")
+    set_text(by_id(s, 10), "3")
+    set_text(by_id(s, 11), "实验")
+    set_text(by_id(s, 12), "2")
+    set_text(by_id(s, 13), "数据集")
+    set_text(by_id(s, 14), "350")
+    set_text(by_id(s, 15), "次训练")
+    set_text(by_id(s, 17), "精度 · 跨架构 · 消融")
+    set_text(by_id(s, 18), "Cora / Citeseer")
+    set_text(by_id(s, 19), "每个实验对应一条论文主张")
+    set_text(by_id(s, 21), "下面三个实验，逐一验证上面的证据")
+    set_notes(s,
+              "主讲 B，30 秒，过渡页。\n"
+              "论文的证据我们就看到这里。接下来换成我们自己跑的：三个实验、两个数据集、350 次训练，"
+              "全部在这台笔记本的 CPU 上完成。\n"
+              "每个实验对应论文的一条主张：精度、跨架构、组件归因。")
+
+
 def dividers(prs):
+    s = prs.slides[13]
+    for sid, text in zip((13, 15, 17), ["精度证据", "跨架构", "成本与边界"]):
+        set_text(by_id(s, sid), text)
     s = prs.slides[19]
     set_text(by_id(s, 11), "三个实验，各自验证了什么？")
     for sid, text in zip((13, 15, 17), ["凝缩效果", "跨架构复用", "消融归因"]):
@@ -288,6 +391,7 @@ def dividers(prs):
 
 def agenda(prs):
     s = prs.slides[1]
+    set_text(by_id(s, 19), "精度证据 / 跨架构 / 成本与边界")
     set_text(by_id(s, 23), "三个实验 / 判定与边界 / 适用场景")
 
 
@@ -367,6 +471,7 @@ def main() -> None:
         move_slide(prs, len(prs.slides._sldIdLst) - 1, 21 + _)
 
     agenda(prs)
+    part3(prs)
     dividers(prs)
     exp1(prs)
     exp2(prs)
