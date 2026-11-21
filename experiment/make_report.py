@@ -75,12 +75,13 @@ def add_runs(p, text: str, size: float, font: str = BODY_FONT):
             set_font(run, font, size)
 
 
-def add_heading(doc, text: str, level: int):
-    sizes = {1: 18, 2: 14, 3: 12}
+def add_heading(doc, text: str, level: int, first: bool = False):
+    sizes = {1: 16, 2: 14, 3: 12}
     p = doc.add_paragraph()
-    p.paragraph_format.space_before = Pt(14 if level == 2 else 8)
+    p.paragraph_format.space_before = Pt(14 if level == 2 else 12)
     p.paragraph_format.space_after = Pt(8)
-    if level == 1:
+    if first:
+        sizes[1] = 20
         p.alignment = WD_ALIGN_PARAGRAPH.CENTER
     run = p.add_run(text)
     set_font(run, HEAD_FONT, sizes.get(level, 12), bold=True)
@@ -99,7 +100,8 @@ def add_table(doc, rows: list[list[str]]):
             cell.text = ""
             p = cell.paragraphs[0]
             p.alignment = WD_ALIGN_PARAGRAPH.CENTER if (r == 0 or c > 0) else WD_ALIGN_PARAGRAPH.LEFT
-            add_runs(p, (row[c] if c < len(row) else "").replace("`", ""), 9)
+            cell_size = 9 if ncol <= 4 else 8.5
+            add_runs(p, (row[c] if c < len(row) else "").replace("`", ""), cell_size)
             if r == 0:
                 for run in p.runs:
                     run.font.bold = True
@@ -168,7 +170,8 @@ def main() -> None:
 
         if stripped.startswith("#"):
             level = len(stripped) - len(stripped.lstrip("#"))
-            add_heading(doc, stripped[level:].strip(), level)
+            add_heading(doc, stripped[level:].strip(), level,
+                        first=(level == 1 and not doc.paragraphs[1:]))
             i += 1
             continue
 
@@ -203,10 +206,22 @@ def main() -> None:
             add_table(doc, rows)
             continue
 
+        if stripped.startswith("> "):
+            p = doc.add_paragraph()
+            p.paragraph_format.left_indent = Pt(18)
+            p.paragraph_format.space_after = Pt(6)
+            run = p.add_run(stripped[2:])
+            set_font(run, BODY_FONT, 9.5, color=RGBColor(0x6f, 0x6f, 0x6f))
+            i += 1
+            continue
+
         if stripped.startswith("- "):
             p = doc.add_paragraph(style="List Bullet")
             p.paragraph_format.space_after = Pt(3)
-            add_runs(p, stripped[2:], 10.5)
+            body = stripped[2:]
+            if body.startswith("[x] "):
+                body = "✓ " + body[4:]
+            add_runs(p, body, 10.5)
             i += 1
             continue
 

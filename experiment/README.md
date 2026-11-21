@@ -63,6 +63,7 @@ n = (sqrt(d^2 + t) - d) / 2       t = S_r * full
 | `measure_condensation.py` | 单独测量凝缩耗时与图大小（论文 §4.4） |
 | `plot_results.py` | 从 `results/*.csv` 生成汇报图（中英双语各一套） |
 | `make_report.py` | 把 `docs/实验报告.md` 渲染成 Word 报告（含图与表） |
+| `make_diagrams.py` | 生成报告用的方法框架图与技术路线图 |
 | `train_released_baseline.py` | 在 `baselines/saved_*` 的合成图上训练 GCond/GDEM/GCSR（见文末警告） |
 | `main_random_exemplar.py` | 消融变体 A：Exemplar 顺序换成固定种子随机排列 |
 | `main_no_ppr.py` | 消融变体 B：跳过 PPR 删点（并把 upscale 设为 1） |
