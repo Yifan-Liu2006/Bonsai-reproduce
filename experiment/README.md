@@ -59,6 +59,7 @@ n = (sqrt(d^2 + t) - d) / 2       t = S_r * full
 | `run_exp1.sh` | 实验一全矩阵（含凝缩、4 种方法、收敛后自动汇总） |
 | `run_exp2.sh` | 实验二：同一份凝缩图 × GCN/GAT/GIN |
 | `run_exp3.sh` | 实验三消融：Bonsai / 随机 Exemplar / 去 PPR，0.1%–1% |
+| `run_exp4.sh` | 参数敏感性：k = 1/3/5/10，每个 k 重凝缩一次 |
 | `measure_condensation.py` | 单独测量凝缩耗时与图大小（论文 §4.4） |
 | `train_released_baseline.py` | 在 `baselines/saved_*` 的合成图上训练 GCond/GDEM/GCSR（见文末警告） |
 | `main_random_exemplar.py` | 消融变体 A：Exemplar 顺序换成固定种子随机排列 |
@@ -80,6 +81,9 @@ bash experiment/run_exp2.sh
 
 # 实验三（消融，Cora，0.1%–1%，5 seeds）
 bash experiment/run_exp3.sh
+
+# 参数敏感性 k（论文 §4.5）
+bash experiment/run_exp4.sh
 
 # 凝缩成本（论文 §4.4）
 $PY experiment/measure_condensation.py --datasets cora citeseer --budgets 0.005 0.01 0.03
