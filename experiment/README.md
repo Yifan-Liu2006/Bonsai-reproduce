@@ -59,8 +59,12 @@ n = (sqrt(d^2 + t) - d) / 2       t = S_r * full
 | `run_exp1.sh` | 实验一全矩阵（含凝缩、4 种方法、收敛后自动汇总） |
 | `run_exp2.sh` | 实验二：同一份凝缩图 × GCN/GAT/GIN |
 | `run_exp3.sh` | 实验三消融：Bonsai / 随机 Exemplar / 去 PPR，0.1%–1% |
+| `measure_condensation.py` | 单独测量凝缩耗时与图大小（论文 §4.4） |
+| `train_released_baseline.py` | 在 `baselines/saved_*` 的合成图上训练 GCond/GDEM/GCSR（见文末警告） |
 | `main_random_exemplar.py` | 消融变体 A：Exemplar 顺序换成固定种子随机排列 |
 | `main_no_ppr.py` | 消融变体 B：跳过 PPR 删点（并把 upscale 设为 1） |
+| `main_random_no_ppr.py` | 消融变体 C：两个都去掉（对应论文 Fig.4 的第三个变体） |
+| `shims/torch_sparse.py` | `torch_sparse` 的最小替身，仅为跑通官方 `baselines/` 代码 |
 
 ## 快速开始
 
@@ -76,6 +80,9 @@ bash experiment/run_exp2.sh
 
 # 实验三（消融，Cora，0.1%–1%，5 seeds）
 bash experiment/run_exp3.sh
+
+# 凝缩成本（论文 §4.4）
+$PY experiment/measure_condensation.py --datasets cora citeseer --budgets 0.005 0.01 0.03
 
 # 只跑一格
 $PY experiment/train_baseline.py --dataset cora --method random \
@@ -130,13 +137,32 @@ GCN 退化为 13 个样本上的 MLP，结果强烈依赖抽到哪些点（换 s
 
 实测（Cora，5 seeds）：
 
-| S_r | Bonsai | 随机 Exemplar | 去 PPR |
-|---|---|---|---|
-| 0.1% | 78.34 | 79.15（图大 19%） | **73.36** |
-| 0.2% | 79.96 | 79.37 | 78.08 |
-| 0.5% | 82.92 | 82.69 | 82.47 |
-| 1% | 84.47 | 84.47（同图） | 84.47（同图） |
+| S_r | Bonsai | 随机 Exemplar | 去 PPR | 随机 + 去 PPR |
+|---|---|---|---|---|
+| 0.1% | 78.34 | 79.15（图大 19%） | **73.36** | 77.38 |
+| 0.2% | 79.96 | 79.37 | 78.08 | 80.22 |
+| 0.5% | 82.92 | 82.69 | 82.47 | 82.81 |
+| 1% | 84.47 | 84.47（同图） | 84.47（同图） | — |
 
 - PPR 是主要贡献者，且预算越紧影响越大（0.1% 掉 5 点）。
 - 随机 Exemplar 在同预算下不明显掉点，但图大 19%；把预算降到 0.08% 做大小对齐后
   是 77.12（−1.2 点），即 Rev-k-NN/Coverage 在 Cora 上约值 1 个点。
+
+
+## ⚠️ baselines/saved_* 里的合成图是占位示例，不要用来产生结果
+
+`baselines/saved_gcond`、`saved_GCSR`、`saved_GDEM` 下有 Cora/Citeseer 的
+`adj_*.pt / feat_*.pt / label_*.pt`，文件名看起来齐全，但它们是仓库里
+"example" 性质的占位数据（见 `baselines/README.md`）。
+
+实测（三者完全一致，说明特征里没有类别信息）：
+
+| 检查 | 结果 |
+|---|---|
+| 在合成图上训练 GCN | 三种方法都只到 **46.2%**，正好等于多数类（6/13） |
+| 逻辑回归留一验证 | 三者都是 **46.2%** |
+| 特征缩放 1/4/14/40 倍重训 | 测试准确率 18–32%，无改善 |
+| 论文 Table 4（GCond, Cora 1%） | **77.30** |
+
+因此 `train_released_baseline.py` 目前跑出来的数字**不能写进报告**；它的价值是
+"拿到真实合成图后可以直接跑"。GCond/GDEM/GCSR 的对比只能引用论文数值。
